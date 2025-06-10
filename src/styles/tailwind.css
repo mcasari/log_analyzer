@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Primary Colors */
+    --color-primary: #2563EB; /* Deep blue (primary) - blue-600 */
+    --color-primary-50: #EFF6FF; /* Very light blue - blue-50 */
+    --color-primary-100: #DBEAFE; /* Light blue - blue-100 */
+    --color-primary-500: #3B82F6; /* Medium blue - blue-500 */
+    --color-primary-700: #1D4ED8; /* Dark blue - blue-700 */
+    --color-primary-900: #1E3A8A; /* Very dark blue - blue-900 */
+
+    /* Secondary Colors */
+    --color-secondary: #64748B; /* Balanced slate - slate-500 */
+    --color-secondary-100: #F1F5F9; /* Light slate - slate-100 */
+    --color-secondary-200: #E2E8F0; /* Light slate - slate-200 */
+    --color-secondary-300: #CBD5E1; /* Medium light slate - slate-300 */
+    --color-secondary-600: #475569; /* Medium dark slate - slate-600 */
+    --color-secondary-700: #334155; /* Dark slate - slate-700 */
+    --color-secondary-800: #1E293B; /* Very dark slate - slate-800 */
+
+    /* Accent Colors */
+    --color-accent: #0EA5E9; /* Bright cyan - sky-500 */
+    --color-accent-100: #E0F2FE; /* Light cyan - sky-100 */
+    --color-accent-200: #BAE6FD; /* Light cyan - sky-200 */
+    --color-accent-600: #0284C7; /* Medium dark cyan - sky-600 */
+
+    /* Background Colors */
+    --color-background: #FAFBFC; /* Subtle off-white - custom */
+    --color-surface: #F8FAFC; /* Elevated surface - slate-50 */
+    --color-surface-hover: #F1F5F9; /* Surface hover - slate-100 */
+
+    /* Text Colors */
+    --color-text-primary: #1E293B; /* Rich dark gray - slate-800 */
+    --color-text-secondary: #64748B; /* Muted text - slate-500 */
+    --color-text-tertiary: #94A3B8; /* Light muted text - slate-400 */
+
+    /* Semantic Colors */
+    --color-success: #059669; /* Forest green - emerald-600 */
+    --color-success-100: #D1FAE5; /* Light green - emerald-100 */
+    --color-success-500: #10B981; /* Medium green - emerald-500 */
+
+    --color-warning: #D97706; /* Amber orange - amber-600 */
+    --color-warning-100: #FEF3C7; /* Light amber - amber-100 */
+    --color-warning-500: #F59E0B; /* Medium amber - amber-500 */
+
+    --color-error: #DC2626; /* Clear red - red-600 */
+    --color-error-100: #FEE2E2; /* Light red - red-100 */
+    --color-error-500: #EF4444; /* Medium red - red-500 */
+
+    /* Border Colors */
+    --color-border: #E2E8F0; /* Neutral border - slate-200 */
+    --color-border-light: #F1F5F9; /* Light border - slate-100 */
+    --color-border-focus: #0EA5E9; /* Focus border - sky-500 */
+
+    /* Shadow Colors */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-text-primary font-body;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+
+  code, pre {
+    @apply font-mono;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 ease-out;
+  }
+.btn-secondary  {
+    @apply bg-secondary-100 text-secondary-700 hover:bg-secondary-200 focus:ring-2 focus:ring-offset-2 transition-all duration-200 ease-out;
+  }
+
+  .card {
+    @apply bg-surface border border-border rounded-lg shadow-sm;
+  }
+
+  .input-field {
+    @apply bg-background border border-border rounded-md px-3 py-2 text-text-primary placeholder-text-tertiary focus:border-border-focus focus:ring-1 focus:ring-border-focus transition-all duration-200 ease-out;
+  }
+
+  .nav-item {
+    @apply text-text-secondary hover:text-text-primary transition-colors duration-150 ease-out;
+  }
+
+  .nav-item-active {
+    @apply text-primary border-b-2 border-primary;
+  }
+
+  .data-row {
+    @apply hover:bg-surface-hover transition-colors duration-150 ease-out;
+  }
+
+  .floating-action {
+    @apply backdrop-blur-sm bg-surface/80 border border-border shadow-md;
+  }
+
+  .micro-interaction {
+    @apply hover:scale-102 transition-transform duration-200 ease-out;
+  }
+
+  .skeleton {
+    @apply animate-pulse bg-gradient-to-r from-secondary-200 via-secondary-100 to-secondary-200 bg-[length:200%_100%];
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scale-102 {
+    transform: scale(1.02);
+  }
+
+  .animation-reduced {
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+      transition: none;
+    }
+  }
+}
