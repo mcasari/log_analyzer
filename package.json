@@ -1,5 +1,5 @@
 {
-  "name": "log_analyzer",
+  "name": "logthread_analyzer",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -21,6 +21,7 @@
     "react-hook-form": "^7.55.0",
     "react-router-dom": "6.0.2",
     "react-router-hash-link": "^2.4.3",
+    "react-window": "^1.8.11",
     "recharts": "^2.15.2",
     "redux": "^5.0.1",
     "tailwindcss-animate": "^1.0.7",

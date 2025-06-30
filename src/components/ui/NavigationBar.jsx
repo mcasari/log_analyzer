@@ -15,6 +15,12 @@ const NavigationBar = () => {
       tooltip: 'Start new analysis'
     },
     {
+      label: 'Patterns',
+      path: '/pattern-configuration-management',
+      icon: 'Settings',
+      tooltip: 'Configure thread patterns'
+    },
+    {
       label: 'Analysis',
       path: '/thread-analysis-filtering',
       icon: 'Filter',

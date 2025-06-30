@@ -7,6 +7,7 @@ import FileUploadDashboard from "pages/file-upload-dashboard";
 import ThreadAnalysisFiltering from "pages/thread-analysis-filtering";
 import ThreadGroupDetailView from "pages/thread-group-detail-view";
 import ExportResultsManagement from "pages/export-results-management";
+import PatternConfigurationManagement from "pages/pattern-configuration-management";
 
 const Routes = () => {
   return (
@@ -21,6 +22,7 @@ const Routes = () => {
             <Route path="/thread-analysis-filtering" element={<ThreadAnalysisFiltering />} />
             <Route path="/thread-group-detail-view" element={<ThreadGroupDetailView />} />
             <Route path="/export-results-management" element={<ExportResultsManagement />} />
+            <Route path="/pattern-configuration-management" element={<PatternConfigurationManagement />} />
           </RouterRoutes>
         </div>
       </ErrorBoundary>

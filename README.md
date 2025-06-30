@@ -1,10 +1,8 @@
 # React
 
-
 A modern React-based project utilizing the latest frontend technologies and tools for building responsive web applications.
 
-## 🚀 Features    
-
+## 🚀 Features
 
 - **React 18** - React version with improved rendering and concurrent features
 - **Vite** - Lightning-fast build tool and development server
@@ -106,3 +104,4 @@ npm run build
 - Powered by React and Vite
 - Styled with Tailwind CSS
 
+Built with ❤️ on Rocket.new
