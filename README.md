@@ -4,6 +4,8 @@ A modern React-based project utilizing the latest frontend technologies and tool
 
 ## 🚀 Features
 
+
+
 - **React 18** - React version with improved rendering and concurrent features
 - **Vite** - Lightning-fast build tool and development server
 - **Redux Toolkit** - State management with simplified Redux setup
