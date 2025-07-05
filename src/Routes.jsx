@@ -2,29 +2,29 @@ import React from "react";
 import { BrowserRouter, Routes as RouterRoutes, Route } from "react-router-dom";
 import ScrollToTop from "components/ScrollToTop";
 import ErrorBoundary from "components/ErrorBoundary";
-import NavigationBar from "components/ui/NavigationBar";
+// Add your imports here
 import FileUploadDashboard from "pages/file-upload-dashboard";
-import ThreadAnalysisFiltering from "pages/thread-analysis-filtering";
-import ThreadGroupDetailView from "pages/thread-group-detail-view";
-import ExportResultsManagement from "pages/export-results-management";
-import PatternConfigurationManagement from "pages/pattern-configuration-management";
+import FileProcessingStatus from "pages/file-processing-status";
+import LogAnalysisWorkspace from "pages/log-analysis-workspace";
+import GroupedContentViewer from "pages/grouped-content-viewer";
+import RegexPatternConfiguration from "pages/regex-pattern-configuration";
+import NotFound from "pages/NotFound";
 
 const Routes = () => {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <ScrollToTop />
-        <NavigationBar />
-        <div className="pt-20">
-          <RouterRoutes>
-            <Route path="/" element={<FileUploadDashboard />} />
-            <Route path="/file-upload-dashboard" element={<FileUploadDashboard />} />
-            <Route path="/thread-analysis-filtering" element={<ThreadAnalysisFiltering />} />
-            <Route path="/thread-group-detail-view" element={<ThreadGroupDetailView />} />
-            <Route path="/export-results-management" element={<ExportResultsManagement />} />
-            <Route path="/pattern-configuration-management" element={<PatternConfigurationManagement />} />
-          </RouterRoutes>
-        </div>
+      <ScrollToTop />
+      <RouterRoutes>
+        {/* Define your routes here */}
+        <Route path="/" element={<FileUploadDashboard />} />
+        <Route path="/file-upload-dashboard" element={<FileUploadDashboard />} />
+        <Route path="/file-processing-status" element={<FileProcessingStatus />} />
+        <Route path="/log-analysis-workspace" element={<LogAnalysisWorkspace />} />
+        <Route path="/grouped-content-viewer" element={<GroupedContentViewer />} />
+        <Route path="/regex-pattern-configuration" element={<RegexPatternConfiguration />} />
+        <Route path="*" element={<NotFound />} />
+      </RouterRoutes>
       </ErrorBoundary>
     </BrowserRouter>
   );

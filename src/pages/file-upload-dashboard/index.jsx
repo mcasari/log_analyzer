@@ -1,438 +1,280 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Icon from '../../components/AppIcon';
-import BreadcrumbTrail from '../../components/ui/BreadcrumbTrail';
+import Header from '../../components/ui/Header';
 import WorkflowProgress from '../../components/ui/WorkflowProgress';
-import UploadZone from './components/UploadZone';
-import ProcessingQueue from './components/ProcessingQueue';
-import ChunkedProcessor from './components/ChunkedProcessor';
-import UploadSidebar from './components/UploadSidebar';
+import QuickActionToolbar from '../../components/ui/QuickActionToolbar';
+import FileUploadZone from './components/FileUploadZone';
+import UploadedFilesList from './components/UploadedFilesList';
+import RegexConfigurationPanel from './components/RegexConfigurationPanel';
+import ProcessingControls from './components/ProcessingControls';
+import Icon from '../../components/AppIcon';
 
 const FileUploadDashboard = () => {
   const navigate = useNavigate();
-  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [regexPattern, setRegexPattern] = useState('');
+  const [isRegexValid, setIsRegexValid] = useState(false);
+  const [regexValidationMessage, setRegexValidationMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-  const [processingMode, setProcessingMode] = useState('standard'); // 'standard' or 'chunked'
-  const [performanceMetrics, setPerformanceMetrics] = useState({
-    totalProcessingTime: 0,
-    averageFileSize: 0,
-    memoryUsage: 0
-  });
-  const fileInputRef = useRef(null);
+  const [processingProgress, setProcessingProgress] = useState(0);
 
-  const supportedFormats = ['txt', 'log', 'csv'];
-  const maxFileSize = 500 * 1024 * 1024; // Increased to 500MB for large files
-  const maxFiles = 20; // Increased limit
-  const largeFileThreshold = 50 * 1024 * 1024; // 50MB threshold for chunked processing
-
-  const mockProcessingSteps = [
-    { label: 'Upload', icon: 'Upload', description: 'Upload log files' },
-    { label: 'Parse', icon: 'FileText', description: 'Parse file content' },
-    { label: 'Extract', icon: 'Filter', description: 'Extract threads' },
-    { label: 'Complete', icon: 'CheckCircle', description: 'Ready for analysis' }
-  ];
-
-  const validateFile = (file) => {
-    const fileExtension = file.name.split('.').pop().toLowerCase();
-    
-    if (!supportedFormats.includes(fileExtension)) {
-      return { valid: false, error: `Unsupported format. Please use: ${supportedFormats.join(', ')}` };
-    }
-    
-    if (file.size > maxFileSize) {
-      return { valid: false, error: `File size exceeds ${maxFileSize / (1024 * 1024)}MB limit` };
-    }
-    
-    return { valid: true };
-  };
-
-  const generateFileId = () => {
-    return Date.now() + Math.random().toString(36).substr(2, 9);
-  };
-
-  const simulateFileProcessing = async (file) => {
-    const fileId = file.id;
-    const steps = ['uploading', 'parsing', 'extracting', 'completed'];
-    const startTime = Date.now();
-    
-    for (let i = 0; i < steps.length; i++) {
-      // Simulate processing time based on file size
-      const processingDelay = Math.min(1000 + (file.size / (1024 * 1024)) * 100, 5000);
-      await new Promise(resolve => setTimeout(resolve, processingDelay));
-      
-      setUploadedFiles(prev => prev.map(f => 
-        f.id === fileId 
-          ? { 
-              ...f, 
-              status: steps[i], 
-              progress: ((i + 1) / steps.length) * 100,
-              processedAt: i === steps.length - 1 ? new Date() : null,
-              processingTime: i === steps.length - 1 ? Date.now() - startTime : null
-            }
-          : f
-      ));
-    }
-
-    // Update performance metrics
-    const processingTime = Date.now() - startTime;
-    setPerformanceMetrics(prev => ({
-      totalProcessingTime: prev.totalProcessingTime + processingTime,
-      averageFileSize: (prev.averageFileSize + file.size) / 2,
-      memoryUsage: Math.max(prev.memoryUsage, file.size)
-    }));
-  };
-
-  const handleFileUpload = useCallback(async (files) => {
-    if (uploadedFiles.length + files.length > maxFiles) {
-      alert(`Maximum ${maxFiles} files allowed`);
+  // Validate regex pattern
+  const validateRegexPattern = useCallback((pattern) => {
+    if (!pattern.trim()) {
+      setIsRegexValid(false);
+      setRegexValidationMessage('');
       return;
     }
 
-    const validFiles = [];
-    const errors = [];
-    let hasLargeFiles = false;
-
-    Array.from(files).forEach(file => {
-      const validation = validateFile(file);
-      if (validation.valid) {
-        const fileWithId = {
-          id: generateFileId(),
-          file,
-          name: file.name,
-          size: file.size,
-          status: 'pending',
-          progress: 0,
-          uploadedAt: new Date(),
-          processedAt: null,
-          processingTime: null,
-          error: null,
-          isLarge: file.size > largeFileThreshold
-        };
-        validFiles.push(fileWithId);
-        
-        if (file.size > largeFileThreshold) {
-          hasLargeFiles = true;
-        }
-      } else {
-        errors.push({ fileName: file.name, error: validation.error });
-      }
-    });
-
-    if (errors.length > 0) {
-      const errorMessage = errors.map(e => `${e.fileName}: ${e.error}`).join('\n');
-      alert(`Upload errors:\n${errorMessage}`);
-    }
-
-    if (validFiles.length > 0) {
-      setUploadedFiles(prev => [...prev, ...validFiles]);
-      
-      // Auto-switch to chunked processing for large files
-      if (hasLargeFiles && processingMode === 'standard') {
-        setProcessingMode('chunked');
-      }
-      
-      setIsProcessing(true);
-
-      if (processingMode === 'chunked' || hasLargeFiles) {
-        // Use chunked processing - handled by ChunkedProcessor component
-        return;
-      }
-
-      // Standard processing for smaller files
-      for (const file of validFiles) {
-        await simulateFileProcessing(file);
-      }
-
-      setIsProcessing(false);
-    }
-  }, [uploadedFiles.length, processingMode, largeFileThreshold]);
-
-  const handleDrag = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
+    try {
+      new RegExp(pattern);
+      setIsRegexValid(true);
+      setRegexValidationMessage('Valid regex pattern');
+    } catch (error) {
+      setIsRegexValid(false);
+      setRegexValidationMessage(`Invalid pattern: ${error.message}`);
     }
   }, []);
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files);
-    }
-  }, [handleFileUpload]);
+  // Handle file selection
+  const handleFilesSelected = useCallback((selectedFiles) => {
+    const newFiles = selectedFiles.map((file, index) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      uploadTime: Date.now(),
+      file: file,
+      id: `${file.name}-${Date.now()}-${index}`,
+      processing: false,
+      error: null,
+      lineCount: Math.floor(Math.random() * 10000) + 100, // Mock line count
+      progress: 0
+    }));
 
-  const handleFileSelect = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files);
-    }
-  };
-
-  const removeFile = (fileId) => {
-    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
-  };
-
-  const retryFile = async (fileId) => {
-    const file = uploadedFiles.find(f => f.id === fileId);
-    if (file) {
-      setUploadedFiles(prev => prev.map(f => 
-        f.id === fileId 
-          ? { ...f, status: 'pending', progress: 0, error: null, processingTime: null }
-          : f
-      ));
-      
-      if (processingMode === 'chunked' || file.isLarge) {
-        // Retry will be handled by ChunkedProcessor
-        return;
+    // Validate files
+    const validatedFiles = newFiles.map(file => {
+      if (file.size > 100 * 1024 * 1024) { // 100MB limit
+        return { ...file, error: 'File size exceeds 100MB limit' };
       }
-      
-      await simulateFileProcessing(file);
-    }
-  };
-
-  const clearAllFiles = () => {
-    setUploadedFiles([]);
-    setPerformanceMetrics({
-      totalProcessingTime: 0,
-      averageFileSize: 0,
-      memoryUsage: 0
+      if (!file.name.match(/\.(log|txt)$/i)) {
+        return { ...file, error: 'Only .log and .txt files are supported' };
+      }
+      return file;
     });
-  };
 
-  const pauseProcessing = () => {
-    setIsProcessing(false);
-  };
+    setFiles(prevFiles => [...prevFiles, ...validatedFiles]);
+  }, []);
 
-  const resumeProcessing = () => {
+  // Handle file removal
+  const handleRemoveFile = useCallback((index) => {
+    setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+  }, []);
+
+  // Handle clear all files
+  const handleClearAll = useCallback(() => {
+    setFiles([]);
+  }, []);
+
+  // Handle regex pattern change
+  const handlePatternChange = useCallback((pattern) => {
+    setRegexPattern(pattern);
+    validateRegexPattern(pattern);
+  }, [validateRegexPattern]);
+
+  // Handle pattern testing
+  const handleTestPattern = useCallback((pattern, testText) => {
+    console.log('Testing pattern:', pattern, 'against:', testText);
+  }, []);
+
+  // Handle file processing
+  const handleProcessFiles = useCallback(() => {
+    if (files.length === 0 || !isRegexValid) return;
+
     setIsProcessing(true);
-  };
+    setProcessingProgress(0);
 
-  const handleAnalyzeThreads = () => {
-    const completedFiles = uploadedFiles.filter(f => f.status === 'completed');
-    if (completedFiles.length > 0) {
-      navigate('/thread-analysis-filtering');
-    }
-  };
+    // Simulate file processing
+    const processFiles = async () => {
+      const totalFiles = files.filter(f => !f.error).length;
+      let processedCount = 0;
 
-  const getUploadStats = () => {
-    const total = uploadedFiles.length;
-    const completed = uploadedFiles.filter(f => f.status === 'completed').length;
-    const processing = uploadedFiles.filter(f => ['uploading', 'parsing', 'extracting'].includes(f.status)).length;
-    const errors = uploadedFiles.filter(f => f.status === 'error').length;
-    const largeFiles = uploadedFiles.filter(f => f.isLarge).length;
-    
-    return { total, completed, processing, errors, largeFiles };
-  };
+      for (let i = 0; i < files.length; i++) {
+        if (files[i].error) continue;
 
-  const stats = getUploadStats();
-  const hasCompletedFiles = stats.completed > 0;
-  const hasLargeFiles = stats.largeFiles > 0;
+        // Update file processing status
+        setFiles(prevFiles => 
+          prevFiles.map((file, index) => 
+            index === i ? { ...file, processing: true, progress: 0 } : file
+          )
+        );
 
-  // Chunked processing handlers
-  const handleChunkedProgress = (file, progressData) => {
-    setUploadedFiles(prev => prev.map(f => 
-      f.id === file.id 
-        ? { 
-            ...f, 
-            progress: progressData.progress,
-            status: 'processing'
-          }
-        : f
-    ));
-  };
+        // Simulate processing time
+        for (let progress = 0; progress <= 100; progress += 10) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          setFiles(prevFiles => 
+            prevFiles.map((file, index) => 
+              index === i ? { ...file, progress } : file
+            )
+          );
+        }
 
-  const handleChunkedComplete = (file, result) => {
-    setUploadedFiles(prev => prev.map(f => 
-      f.id === file.id 
-        ? { 
-            ...f, 
-            status: 'completed',
-            progress: 100,
-            processedAt: new Date(),
-            processingTime: result.processingTime
-          }
-        : f
-    ));
-    
-    // Check if all files are completed
-    const allCompleted = uploadedFiles.every(f => 
-      f.id === file.id || f.status === 'completed' || f.status === 'error'
-    );
-    
-    if (allCompleted) {
-      setIsProcessing(false);
-    }
-  };
+        // Mark as completed
+        setFiles(prevFiles => 
+          prevFiles.map((file, index) => 
+            index === i ? { ...file, processing: false, progress: 100 } : file
+          )
+        );
 
-  const handleChunkedError = (file, error) => {
-    setUploadedFiles(prev => prev.map(f => 
-      f.id === file.id 
-        ? { 
-            ...f, 
-            status: 'error',
-            error: error.message
-          }
-        : f
-    ));
-  };
+        processedCount++;
+        setProcessingProgress((processedCount / totalFiles) * 100);
+      }
+
+      // Complete processing
+      setTimeout(() => {
+        setIsProcessing(false);
+        navigate('/file-processing-status');
+      }, 1000);
+    };
+
+    processFiles();
+  }, [files, isRegexValid, navigate]);
+
+  // Handle advanced settings
+  const handleAdvancedSettings = useCallback(() => {
+    navigate('/regex-pattern-configuration');
+  }, [navigate]);
+
+  // Effect to validate regex on mount
+  useEffect(() => {
+    validateRegexPattern(regexPattern);
+  }, [regexPattern, validateRegexPattern]);
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <BreadcrumbTrail />
-        
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Icon name="Upload" size={24} color="white" />
+      <Header />
+      <QuickActionToolbar />
+      
+      <main className="pt-16">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8">
+          {/* Page Header */}
+          <div className="mb-8">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="flex items-center justify-center w-10 h-10 bg-primary rounded-lg">
+                <Icon name="Upload" size={24} color="white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-text-primary">
+                  File Upload Dashboard
+                </h1>
+                <p className="text-text-secondary">
+                  Upload log files and configure analysis patterns
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-text-primary">File Upload Dashboard</h1>
-              <p className="text-text-secondary">
-                Upload and process log files for thread analysis
-                {hasLargeFiles && (
-                  <span className="ml-2 text-primary font-medium">
-                    • Optimized for large files
+            
+            {/* Processing Progress */}
+            {isProcessing && (
+              <div className="bg-accent-50 border border-accent-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <Icon name="Loader2" size={16} className="animate-spin" color="var(--color-accent)" />
+                    <span className="font-medium text-accent-700">
+                      Processing Files...
+                    </span>
+                  </div>
+                  <span className="text-sm text-accent-600">
+                    {Math.round(processingProgress)}%
                   </span>
-                )}
-              </p>
-            </div>
-          </div>
-
-          {/* Performance Metrics */}
-          {hasCompletedFiles && performanceMetrics.totalProcessingTime > 0 && (
-            <div className="mb-4 p-4 bg-success-50 border border-success-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <Icon name="Zap" size={20} className="text-success-600" />
-                  <div>
-                    <h4 className="font-medium text-success-800">Processing Performance</h4>
-                    <div className="flex items-center space-x-4 text-sm text-success-700">
-                      <span>Total time: {Math.round(performanceMetrics.totalProcessingTime / 1000)}s</span>
-                      <span>•</span>
-                      <span>Avg file size: {Math.round(performanceMetrics.averageFileSize / (1024 * 1024))}MB</span>
-                      <span>•</span>
-                      <span>Mode: {processingMode === 'chunked' ? 'Chunked (Optimized)' : 'Standard'}</span>
-                    </div>
-                  </div>
                 </div>
-                
-                {hasLargeFiles && (
-                  <button
-                    onClick={() => setProcessingMode(processingMode === 'chunked' ? 'standard' : 'chunked')}
-                    className="btn-secondary px-3 py-2 rounded-lg text-sm font-medium"
-                  >
-                    Switch to {processingMode === 'chunked' ? 'Standard' : 'Chunked'} Mode
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Workflow Progress */}
-          <div className="bg-surface rounded-lg border border-border p-6">
-            <WorkflowProgress 
-              currentStep={hasCompletedFiles ? 2 : 1}
-              totalSteps={4}
-              steps={mockProcessingSteps}
-              isProcessing={isProcessing}
-              processingMessage={
-                hasLargeFiles 
-                  ? "Processing large files with chunked optimization..." :"Processing uploaded files..."
-              }
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Main Content */}
-          <div className="xl:col-span-3 space-y-6">
-            {/* Upload Zone */}
-            <UploadZone
-              dragActive={dragActive}
-              onDrag={handleDrag}
-              onDrop={handleDrop}
-              onFileSelect={handleFileSelect}
-              fileInputRef={fileInputRef}
-              supportedFormats={supportedFormats}
-              maxFileSize={maxFileSize}
-              uploadedFilesCount={uploadedFiles.length}
-              maxFiles={maxFiles}
-              largeFileSupport={true}
-            />
-
-            {/* Processing Components */}
-            {uploadedFiles.length > 0 && (
-              <>
-                {processingMode === 'chunked' || hasLargeFiles ? (
-                  <ChunkedProcessor
-                    files={uploadedFiles.filter(f => f.status === 'pending' || ['uploading', 'parsing', 'extracting'].includes(f.status))}
-                    onProgress={handleChunkedProgress}
-                    onComplete={handleChunkedComplete}
-                    onError={handleChunkedError}
-                    maxConcurrency={2}
-                    autoStart={true}
+                <div className="w-full bg-accent-100 rounded-full h-2">
+                  <div 
+                    className="bg-accent h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${processingProgress}%` }}
                   />
-                ) : (
-                  <ProcessingQueue
-                    files={uploadedFiles}
-                    isProcessing={isProcessing}
-                    onRemoveFile={removeFile}
-                    onRetryFile={retryFile}
-                    onClearAll={clearAllFiles}
-                    onPause={pauseProcessing}
-                    onResume={resumeProcessing}
-                    stats={stats}
-                  />
-                )}
-              </>
-            )}
-
-            {/* Action Buttons */}
-            {hasCompletedFiles && (
-              <div className="bg-surface rounded-lg border border-border p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
-                  <div>
-                    <h3 className="text-lg font-semibold text-text-primary mb-2">Ready for Analysis</h3>
-                    <p className="text-text-secondary">
-                      {stats.completed} file{stats.completed !== 1 ? 's' : ''} processed successfully
-                      {hasLargeFiles && ' using optimized chunked processing'}. 
-                      You can now proceed to analyze threads.
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleAnalyzeThreads}
-                    className="btn-primary px-6 py-3 rounded-lg font-medium flex items-center space-x-2 micro-interaction"
-                  >
-                    <Icon name="Filter" size={20} />
-                    <span>Analyze Threads</span>
-                    <Icon name="ArrowRight" size={16} />
-                  </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="xl:col-span-1">
-            <UploadSidebar
-              supportedFormats={supportedFormats}
-              maxFileSize={maxFileSize}
-              maxFiles={maxFiles}
-              stats={stats}
-              largeFileSupport={true}
-              processingMode={processingMode}
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* File Upload Zone */}
+              <FileUploadZone
+                onFilesSelected={handleFilesSelected}
+                isProcessing={isProcessing}
+              />
+
+              {/* Uploaded Files List */}
+              <UploadedFilesList
+                files={files}
+                onRemoveFile={handleRemoveFile}
+                onClearAll={handleClearAll}
+              />
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Workflow Progress */}
+              <WorkflowProgress />
+
+              {/* Regex Configuration */}
+              <RegexConfigurationPanel
+                regexPattern={regexPattern}
+                onPatternChange={handlePatternChange}
+                onTestPattern={handleTestPattern}
+                isValid={isRegexValid}
+                validationMessage={regexValidationMessage}
+              />
+
+              {/* Processing Controls */}
+              <ProcessingControls
+                files={files}
+                regexPattern={regexPattern}
+                isRegexValid={isRegexValid}
+                isProcessing={isProcessing}
+                onProcessFiles={handleProcessFiles}
+                onClearAll={handleClearAll}
+                onAdvancedSettings={handleAdvancedSettings}
+              />
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-surface border border-border rounded-lg p-6 text-center">
+              <Icon name="Files" size={32} color="var(--color-primary)" className="mx-auto mb-2" />
+              <div className="text-2xl font-bold text-text-primary">{files.length}</div>
+              <div className="text-sm text-text-secondary">Files Uploaded</div>
+            </div>
+            
+            <div className="bg-surface border border-border rounded-lg p-6 text-center">
+              <Icon name="HardDrive" size={32} color="var(--color-accent)" className="mx-auto mb-2" />
+              <div className="text-2xl font-bold text-text-primary">
+                {(files.reduce((total, file) => total + file.size, 0) / (1024 * 1024)).toFixed(1)}
+              </div>
+              <div className="text-sm text-text-secondary">MB Total Size</div>
+            </div>
+            
+            <div className="bg-surface border border-border rounded-lg p-6 text-center">
+              <Icon name="Settings" size={32} color="var(--color-success)" className="mx-auto mb-2" />
+              <div className="text-2xl font-bold text-text-primary">
+                {isRegexValid ? '1' : '0'}
+              </div>
+              <div className="text-sm text-text-secondary">Pattern Configured</div>
+            </div>
+            
+            <div className="bg-surface border border-border rounded-lg p-6 text-center">
+              <Icon name="Activity" size={32} color="var(--color-warning)" className="mx-auto mb-2" />
+              <div className="text-2xl font-bold text-text-primary">
+                {files.filter(f => !f.error && !f.processing).length}
+              </div>
+              <div className="text-sm text-text-secondary">Ready to Process</div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
